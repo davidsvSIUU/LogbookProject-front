@@ -1,44 +1,68 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './LoginForm.css'; // Assurez-vous que ce fichier existe et est correctement configuré
+import './LoginForm.css';
+import { supabase } from '../supabaseClient';
 
 interface LoginForm {
-  identifiant: string;
-  password: string;
+  email?: string;
+  password?: string;
 }
 
 export default function Login() {
   const [formData, setFormData] = useState<LoginForm>({
-    identifiant: '',
+    email: '',
     password: '',
   });
+  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.email || !formData.password) {
+      alert('Veuillez remplir tous les champs.');
+      return;
+    }
+
     try {
-      const response = await axios.post('http://localhost:8000/login', formData);
-      localStorage.setItem('token', response.data.token);
-      navigate('/dashboard'); // Redirige après connexion
+      let response;
+      if (isSignUp) {
+        response = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+        });
+      } else {
+        response = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+      }
+
+      if (response.error) {
+        console.error('Erreur d\'authentification:', response.error.message);
+        alert(response.error.message);
+      } else {
+        console.log('Authentification réussie!', response.data);
+        navigate('/dashboard'); // Redirect after login/signup
+      }
     } catch (error) {
-      console.error('Erreur de connexion:', error);
-      alert('Identifiants incorrects');
+      console.error('Erreur inattendue:', error);
+      alert('Erreur inattendue lors de l\'authentification.');
     }
   };
 
   return (
     <div className="login-container">
       <form onSubmit={handleSubmit} className="login-form">
-        <h2 className="login-title">Connexion</h2>
+        <h2 className="login-title">{isSignUp ? 'Inscription' : 'Connexion'}</h2>
 
         <div className="form-group">
-          <label className="form-label">identifiant</label>
+          <label className="form-label">Email</label>
           <input
-            type="identifiant"
+            type="email"
             className="form-input"
-            value={formData.identifiant}
-            onChange={(e) => setFormData({ ...formData, identifiant: e.target.value })}
+            value={formData.email || ''}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             required
           />
         </div>
@@ -48,15 +72,18 @@ export default function Login() {
           <input
             type="password"
             className="form-input"
-            value={formData.password}
+            value={formData.password || ''}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             required
           />
         </div>
 
         <button type="submit" className="submit-button">
-          Se connecter
+          {isSignUp ? 'S\'inscrire' : 'Se connecter'}
         </button>
+        <p className="signup-link" onClick={() => setIsSignUp(!isSignUp)} style={{color: 'red'}}>
+          {isSignUp ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? S\'inscrire'}
+        </p>
       </form>
     </div>
   );
