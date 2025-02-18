@@ -13,6 +13,9 @@ export default function Dashboard() {
   const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState('');
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<BlobPart[]>([]);
+  const [ws, setWs] = useState<WebSocket | null>(null); // WebSocket state
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -32,47 +35,97 @@ export default function Dashboard() {
     return () => {
       subscription.unsubscribe();
       stopRecording();
+      if (ws) { // Close WebSocket connection on component unmount
+        ws.close();
+      }
     };
   }, []);
 
-  /*const startRecording = async () => {
+  const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setAudioStream(stream);
-      setIsRecording(true);
-      
-      // Ici, vous devrez implémenter la logique de reconnaissance vocale
-      // Par exemple, avec Web Speech API ou une autre API de reconnaissance vocale
-      // Cette partie dépendra de l'API que vous choisissez d'utiliser
-      
-      // Exemple fictif de mise à jour de la transcription
-      // Dans la réalité, cela serait connecté à votre service de reconnaissance vocale
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      
-      recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join('');
-        
-        setTranscription(transcript);
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' }); // Use webm for websocket
+      setMediaRecorder(recorder);
+      setAudioChunks([]);
+
+      // Initialize WebSocket connection
+      const newWs = new WebSocket('ws://localhost:8000/ws/transcire'); // WebSocket URL
+      setWs(newWs);
+
+      newWs.onopen = () => {
+        console.log('WebSocket connection opened');
+        setIsRecording(true);
+        recorder.start(); // Start recording after WebSocket is open
       };
-      
-      recognition.start();
+
+      newWs.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'transcript' && data.data?.utterance?.text) {
+            const transcriptText = data.data.utterance.text;
+            setTranscription(prevTranscription => prevTranscription + transcriptText + '\n'); // Append new transcription to existing
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+
+      newWs.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setTranscription('Erreur de transcription WebSocket.');
+        setIsRecording(false);
+        stopRecording();
+      };
+
+      newWs.onclose = () => {
+        console.log('WebSocket connection closed');
+        setIsRecording(false);
+      };
+
+
+      recorder.ondataavailable = (event) => {
+        if (ws && ws.readyState === WebSocket.OPEN && event.data.size > 0) {
+          ws.send(event.data); // Send audio data through WebSocket
+        }
+      };
+
+      recorder.onstop = () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.close(); // Close WebSocket when recording stops
+        }
+      };
+
+
     } catch (error) {
-      console.error('Erreur lors du démarrage de l'enregistrement:', error);
+      console.error('Erreur lors du démarrage de l\'enregistrement:', error);
+      setTranscription('Erreur lors du démarrage de l\'enregistrement.');
+      setIsRecording(false);
     }
-  };*/
+  };
 
   const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+    }
     if (audioStream) {
       audioStream.getTracks().forEach(track => track.stop());
       setAudioStream(null);
     }
     setIsRecording(false);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.close(); // Ensure WebSocket is closed when stop recording is called manually
+    }
   };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -104,10 +157,11 @@ export default function Dashboard() {
       <main className="dashboard-main">
         <div className="transcription-container">
           <div className="controls-section">
-            <button 
+            <button
               className={`record-button ${isRecording ? 'recording' : ''}`}
+              onClick={toggleRecording}
             >
-              {isRecording ? 'Arrêter lenregistrement' : 'Démarrer lenregistrement'}
+              {isRecording ? 'Arrêter l\'enregistrement' : 'Démarrer l\'enregistrement'}
             </button>
             <div className="status-indicator">
               {isRecording ? 'Enregistrement en cours...' : 'Prêt à enregistrer'}

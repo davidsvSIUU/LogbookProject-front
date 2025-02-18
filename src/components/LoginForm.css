@@ -86,6 +86,7 @@
   font-size: 1rem;
   transition: all 0.3s ease;
   background: #f7fafc;
+  color: #2d3748; /* Added to ensure text is visible */
 }
 
 .form-input::placeholder {
