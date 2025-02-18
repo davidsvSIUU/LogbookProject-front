@@ -5,7 +5,16 @@ import { supabase } from '../supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import './DashboardStyle.css';
 import logo from '../assets/logo.jpg';
-
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faMicrophone, 
+  faStop, 
+  faCopy, 
+  faCheck, 
+  faTrash, 
+  faList, 
+  faTimes 
+} from '@fortawesome/free-solid-svg-icons';
 export default function Dashboard() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -16,6 +25,10 @@ export default function Dashboard() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<BlobPart[]>([]);
   const [ws, setWs] = useState<WebSocket | null>(null); // WebSocket state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [audioList, setAudioList] = useState<any[]>([]);
+  const [selectedAudio, setSelectedAudio] = useState<any>(null);
+  const [hasCopied, setHasCopied] = useState(false);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -26,7 +39,7 @@ export default function Dashboard() {
     };
 
     fetchSession();
-
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUserEmail(session?.user?.email || '');
@@ -40,7 +53,41 @@ export default function Dashboard() {
       }
     };
   }, []);
-
+  useEffect(() => {
+    const fetchRecordings = async () => {
+      if (session) {
+        const { data, error } = await supabase
+          .from('recordings') // Changement de table
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+        
+        if (!error) setAudioList(data || []);
+      }
+    };
+    
+    if (isSidebarOpen) fetchRecordings();
+  }, [isSidebarOpen, session]);
+  const handleCopy = async () => {
+  await navigator.clipboard.writeText(transcription);
+  setHasCopied(true);
+  setTimeout(() => setHasCopied(false), 2000); // Reset après 2 secondes
+};
+  useEffect(() => {
+    const fetchAudios = async () => {
+      if (session) {
+        const { data, error } = await supabase
+          .from('audios')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+        
+        if (!error) setAudioList(data || []);
+      }
+    };
+    
+    if (isSidebarOpen) fetchAudios();
+  }, [isSidebarOpen, session]);
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -141,6 +188,45 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-container">
+    <button 
+    className="sidebar-toggle"
+    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+  >
+    <FontAwesomeIcon icon={isSidebarOpen ? faTimes : faList} />
+  </button>
+
+  <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        {selectedAudio ? (
+          <div className="audio-details">
+            <button className="back-button" onClick={() => setSelectedAudio(null)}>
+              ← Retour
+            </button>
+            <h3>{selectedAudio.title || 'Sans titre'}</h3>
+            <p>Date: {new Date(selectedAudio.created_at).toLocaleString()}</p>
+            <audio controls src={selectedAudio.audio_url} />
+            <div className="transcription-preview">
+              <h4>Transcription :</h4>
+              <p>{selectedAudio.transcription_text || 'Aucune transcription disponible'}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="audio-list">
+            <h3>Vos enregistrements</h3>
+            {audioList.map(recording => (
+              <div 
+                key={recording.id} 
+                className="audio-item"
+                onClick={() => setSelectedAudio(recording)}
+              >
+                <div className="audio-title">{recording.title || 'Sans titre'}</div>
+                <div className="audio-date">
+                  {new Date(recording.created_at).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <header className="dashboard-header">
         <div className="brand-section">
           <img src={logo} alt="Logo" className="dashboard-logo" />
@@ -157,13 +243,17 @@ export default function Dashboard() {
       <main className="dashboard-main">
         <div className="transcription-container">
           <div className="controls-section">
-            <button
-              className={`record-button ${isRecording ? 'recording' : ''}`}
-              onClick={toggleRecording}
-            >
-              {isRecording ? 'Arrêter l\'enregistrement' : 'Démarrer l\'enregistrement'}
-            </button>
-            <div className="status-indicator">
+          <button
+            className={`record-button ${isRecording ? 'recording' : ''}`}
+            onClick={toggleRecording}
+          >
+            <FontAwesomeIcon 
+              icon={isRecording ? faStop : faMicrophone} 
+              style={{ marginRight: '8px' }}
+            />
+            {isRecording ? 'Arrêter l\'enregistrement' : 'Démarrer l\'enregistrement'}
+          </button>
+          <div className="status-indicator">
               {isRecording ? 'Enregistrement en cours...' : 'Prêt à enregistrer'}
             </div>
           </div>
@@ -174,18 +264,24 @@ export default function Dashboard() {
               {transcription || 'La transcription apparaîtra ici...'}
             </div>
           </div>
-
           <div className="action-buttons">
-            <button className="action-button" onClick={() => navigator.clipboard.writeText(transcription)}>
-              Copier la transcription
+            <button 
+              className="action-button" 
+              onClick={handleCopy}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <FontAwesomeIcon icon={hasCopied ? faCheck : faCopy} />
+              {hasCopied ? 'Copié !' : 'Copier la transcription'}
             </button>
-            <button className="action-button" onClick={() => setTranscription('')}>
+            <button 
+              className="action-button"
+              onClick={() => setTranscription('')}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <FontAwesomeIcon icon={faTrash} />
               Effacer
             </button>
-            <button className="action-button">
-              Télécharger
-            </button>
-          </div>
+            </div>
         </div>
       </main>
     </div>
