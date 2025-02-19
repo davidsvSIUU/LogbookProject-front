@@ -29,6 +29,7 @@ export default function Dashboard() {
   const [audioList, setAudioList] = useState<any[]>([]);
   const [selectedAudio, setSelectedAudio] = useState<any>(null);
   const [hasCopied, setHasCopied] = useState(false);
+  const [currentRecordingId, setCurrentRecordingId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -90,60 +91,88 @@ export default function Dashboard() {
   }, [isSidebarOpen, session]);
   const startRecording = async () => {
     try {
+      // Créer d'abord l'enregistrement dans la base de données
+      const { data: recordingData, error: recordingError } = await supabase
+        .from('recordings')
+        .insert([
+          {
+            user_id: session?.user.id,
+            title: `Enregistrement du ${new Date().toLocaleString()}`,
+            transcription_text: '',
+            audio_url: ''
+          }
+        ])
+        .select()
+        .single();
+  
+      if (recordingError) {
+        console.error('Erreur lors de la création de l\'enregistrement:', recordingError);
+        return;
+      }
+  
+      setCurrentRecordingId(recordingData.id);
+  
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setAudioStream(stream);
       const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' }); // Use webm for websocket
       setMediaRecorder(recorder);
       setAudioChunks([]);
-
+  
       // Initialize WebSocket connection
       const newWs = new WebSocket('ws://localhost:8000/ws/transcire'); // WebSocket URL
       setWs(newWs);
-
+  
       newWs.onopen = () => {
         console.log('WebSocket connection opened');
         setIsRecording(true);
+        setTranscription(''); // Réinitialise la transcription au début de l'enregistrement
         recorder.start(); // Start recording after WebSocket is open
       };
-
-      newWs.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'transcript' && data.data?.utterance?.text) {
-            const transcriptText = data.data.utterance.text;
-            setTranscription(prevTranscription => prevTranscription + transcriptText + '\n'); // Append new transcription to existing
+  
+      newWs.onmessage = async (event) => {
+        const newTranscription = event.data;
+        setTranscription(prevTranscription => {
+          const updatedTranscription = prevTranscription + newTranscription + '\n';
+          
+          // Mettre à jour la transcription dans la base de données
+          if (currentRecordingId) {
+            supabase
+              .from('recordings')
+              .update({ transcription_text: updatedTranscription })
+              .eq('id', currentRecordingId)
+              .then(({ error }) => {
+                if (error) console.error('Erreur lors de la mise à jour de la transcription:', error);
+              });
           }
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
+          
+          return updatedTranscription;
+        });
       };
-
+  
       newWs.onerror = (error) => {
         console.error('WebSocket error:', error);
         setTranscription('Erreur de transcription WebSocket.');
         setIsRecording(false);
         stopRecording();
       };
-
+  
       newWs.onclose = () => {
         console.log('WebSocket connection closed');
         setIsRecording(false);
       };
-
-
+  
       recorder.ondataavailable = (event) => {
         if (ws && ws.readyState === WebSocket.OPEN && event.data.size > 0) {
           ws.send(event.data); // Send audio data through WebSocket
         }
       };
-
+  
       recorder.onstop = () => {
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.close(); // Close WebSocket when recording stops
         }
       };
-
-
+  
     } catch (error) {
       console.error('Erreur lors du démarrage de l\'enregistrement:', error);
       setTranscription('Erreur lors du démarrage de l\'enregistrement.');
@@ -151,19 +180,38 @@ export default function Dashboard() {
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorder && mediaRecorder.state === "recording") {
-      mediaRecorder.stop();
+const stopRecording = async () => {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+  }
+  if (audioStream) {
+    audioStream.getTracks().forEach(track => track.stop());
+    setAudioStream(null);
+  }
+  setIsRecording(false);
+  
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.close(); // Ensure WebSocket is closed when stop recording is called manually
+  }
+
+  // Finaliser l'enregistrement dans la base de données
+  if (currentRecordingId) {
+    const { error } = await supabase
+      .from('recordings')
+      .update({
+        transcription_text: transcription,
+        // Vous pouvez ajouter d'autres champs à mettre à jour ici si nécessaire
+      })
+      .eq('id', currentRecordingId);
+
+    if (error) {
+      console.error('Erreur lors de la finalisation de l\'enregistrement:', error);
     }
-    if (audioStream) {
-      audioStream.getTracks().forEach(track => track.stop());
-      setAudioStream(null);
-    }
-    setIsRecording(false);
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.close(); // Ensure WebSocket is closed when stop recording is called manually
-    }
-  };
+
+    // Réinitialiser l'ID de l'enregistrement courant
+    setCurrentRecordingId(null);
+  }
+};
 
   const toggleRecording = () => {
     if (isRecording) {
