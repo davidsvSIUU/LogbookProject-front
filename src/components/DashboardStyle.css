@@ -242,7 +242,7 @@
 .sidebar-toggle {
   position: fixed;
   right: 25px;
-  top: 100px;
+  top: 55px;
   z-index: 1001;
   background: var(--primary-gradient);
   color: var(--white);
@@ -365,8 +365,7 @@
   align-items: center; /* Alignement vertical pour une meilleure présentation */
 }
 
-.delete-button,
-.play-button {
+.delete-button{
   background-color: #e74c3c; /* Rouge */
   color: var(--white);
   border: none;
@@ -379,12 +378,8 @@
   justify-content: center;
 }
 
-.play-button {
-  background-color: #27ae60; /* Vert */
-}
 
-.delete-button:hover,
-.play-button:hover {
+.delete-button:hover{
   opacity: 0.8;
 }
 /* Style pour la date dans les détails de l'audio */

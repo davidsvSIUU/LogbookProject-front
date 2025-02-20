@@ -15,9 +15,8 @@ import {
     faTrash,
     faList,
     faTimes,
-    faPlay,
+    faFileAudio,
     faRedo,
-    faPause
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function Dashboard() {
@@ -51,7 +50,9 @@ export default function Dashboard() {
             console.error('Error fetching transcription content:', error);
             setSelectedAudioTranscriptionContent('Failed to load transcription.');
         }
-    };
+    };    const [hasListened, setHasListened] = useState(false);
+    const [audioEnded, setAudioEnded] = useState(false); // New state to track audio end
+
 
     useEffect(() => {
         const fetchSession = async () => {
@@ -130,7 +131,6 @@ export default function Dashboard() {
 
     const startRecording = async () => {
         try {
-            // Créer d'abord l'enregistrement dans la base de données
             const { data: recordingData, error: recordingError } = await supabase
                 .from('recordings')
                 .insert([
@@ -146,6 +146,8 @@ export default function Dashboard() {
 
             if (recordingError) {
                 console.error('Erreur lors de la création de l\'enregistrement:', recordingError);
+                setErrorMessage(`Erreur de création d'enregistrement: ${recordingError.message}`);
+                setTimeout(() => setErrorMessage(null), 5000);
                 return;
             }
 
@@ -156,6 +158,7 @@ export default function Dashboard() {
             const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
             setMediaRecorder(recorder);
             setAudioChunks([]);
+            audioChunksRef.current = [];
 
             const newWs = new WebSocket('ws://localhost:8000/ws/transcire');
             setWs(newWs);
@@ -169,7 +172,7 @@ export default function Dashboard() {
             };
 
             newWs.onmessage = async (event) => {
-                const newTranscription = event.data;
+                const newTranscription = (event as MessageEvent).data; // Cast event to MessageEvent
                 setTranscription(prevTranscription => {
                     const updatedTranscription = prevTranscription + newTranscription + '\n';
 
@@ -187,8 +190,10 @@ export default function Dashboard() {
                 });
             };
 
-            newWs.onerror = (error) => {
-                console.error('WebSocket error:', error);
+            newWs.onerror = (event) => { // Change 'error' to 'event'
+                console.error('WebSocket error:', event);
+                setErrorMessage(`Erreur WebSocket: ${event}`); // Display the event
+                setTimeout(() => setErrorMessage(null), 5000);
                 setTranscription('Erreur de transcription WebSocket.');
                 setIsRecording(false);
                 stopRecording();
@@ -201,7 +206,7 @@ export default function Dashboard() {
 
             recorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
-                    audioChunksRef.current.push(event.data); // Stockage synchrone
+                    audioChunksRef.current.push(event.data);
                     if (ws && ws.readyState === WebSocket.OPEN) {
                         ws.send(event.data);
                     }
@@ -215,25 +220,23 @@ export default function Dashboard() {
 
                 if (currentRecordingId) {
                     try {
-                        // Création du Blob audio
                         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-
-                        // Génération d'un nom de fichier unique
+                        setAudioBlob(audioBlob); // Stockage du Blob
                         const fileName = `recording_${currentRecordingId}_${Date.now()}.webm`;
 
-                        // Upload vers Supabase Storage
-                        const { error: uploadError } = await supabase.storage
+                        const { data: uploadData, error: uploadError } = await supabase.storage // No longer an error, variable used.
                             .from('logbook-audio-records')
-                            .upload(fileName, audioBlob);
+                            .upload(`${session?.user.id}/${fileName}`, audioBlob, {
+                                cacheControl: '3600',
+                                upsert: false
+                            });
 
                         if (uploadError) throw uploadError;
 
-                        // Récupération de l'URL publique
                         const { data: { publicUrl } } = supabase.storage
                             .from('logbook-audio-records')
-                            .getPublicUrl(fileName);
+                            .getPublicUrl(`${session?.user.id}/${fileName}`);
 
-                        // Mise à jour de l'enregistrement
                         const { error: updateError } = await supabase
                             .from('recordings')
                             .update({ audio_url: publicUrl })
@@ -241,12 +244,13 @@ export default function Dashboard() {
 
                         if (updateError) throw updateError;
 
-                    } catch (error) {
+                    } catch (error: any) {
                         console.error('Erreur lors du traitement audio :', error);
+                        setErrorMessage(`Erreur de traitement audio: ${error.message}`);
+                        setTimeout(() => setErrorMessage(null), 5000);
                     }
                 }
 
-                // Nettoyage
                 if (audioStream) {
                     audioStream.getTracks().forEach(track => track.stop());
                     setAudioStream(null);
@@ -254,14 +258,15 @@ export default function Dashboard() {
                 audioChunksRef.current = [];
             };
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Erreur lors du démarrage de l\'enregistrement:', error);
+            setErrorMessage(`Erreur de démarrage d'enregistrement: ${error.message}`);
+            setTimeout(() => setErrorMessage(null), 5000);
             setTranscription('Erreur lors du démarrage de l\'enregistrement.');
             setIsRecording(false);
         }
     };
 
-    // Remplace la fonction stopRecording complète :
     const stopRecording = async () => {
         if (mediaRecorder && mediaRecorder.state === "recording") {
             mediaRecorder.stop();
@@ -287,9 +292,12 @@ export default function Dashboard() {
                 const fileName = `${session?.user.id}/recording-${currentRecordingId}-${Date.now()}.webm`;
 
                 // Upload the audio file to Supabase Storage
-                const { data: uploadData, error: uploadError } = await supabase.storage
+                const { data: uploadData, error: uploadError } = await supabase.storage  // No longer an error, variable used.
                     .from('logbook-audio-records')
-                    .upload(fileName, audioBlob);
+                    .upload(fileName, audioBlob, {
+                      cacheControl: '3600',
+                      upsert: false
+                    });
 
                 if (uploadError) {
                     throw new Error(`Erreur lors de l'upload: ${uploadError.message}`);
@@ -313,8 +321,10 @@ export default function Dashboard() {
                     throw new Error(`Erreur lors de la mise à jour: ${updateError.message}`);
                 }
 
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Erreur lors de l\'enregistrement de l\'audio:', error);
+                setErrorMessage(`Erreur lors de l'enregistrement de l'audio: ${error.message}`);
+                setTimeout(() => setErrorMessage(null), 5000);
             }
         }
 
@@ -323,7 +333,6 @@ export default function Dashboard() {
         setAudioBlob(null);
         setAudioChunks([]);
     };
-
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -393,27 +402,26 @@ export default function Dashboard() {
             setTimeout(() => setErrorMessage(null), 5000); // Supprimer le message après 5 secondes
         }
     };
-    // Dans votre fonction handlePlayPause, ajoutez cette animation
     const handlePlayPause = (audioUrl: string) => {
-      if (audioRef.current) {
-          const button = document.querySelector('.play-button') as HTMLElement;
-          if (button) {
-              button.style.transform = 'scale(0.9)';
-              setTimeout(() => {
-                  button.style.transform = 'scale(1)';
-              }, 100);
-          }
+        if (audioRef.current) {
+            const button = document.querySelector('.play-button') as HTMLElement;
+            if (button) {
+                button.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    button.style.transform = 'scale(1)';
+                }, 100);
+            }
 
-          if (isPlaying && currentlyPlayingAudioUrl === audioUrl) {
-              audioRef.current.pause();
-              setIsPlaying(false);
-          } else {
-              audioRef.current.src = audioUrl;
-              audioRef.current.play();
-              setIsPlaying(true);
-              setCurrentlyPlayingAudioUrl(audioUrl);
-          }
-      }
+            if (isPlaying && currentlyPlayingAudioUrl === audioUrl) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+            } else {
+                audioRef.current.src = audioUrl;
+                audioRef.current.play();
+                setIsPlaying(true);
+                setCurrentlyPlayingAudioUrl(audioUrl);
+            }
+        }
     };
     const handleReplay = () => {
         if (audioRef.current) {
@@ -440,15 +448,38 @@ export default function Dashboard() {
             <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
                 {selectedAudio ? (
                     <div className="audio-details">
-                        <button className="back-button" onClick={() => setSelectedAudio(null)}>
+                        <button className="back-button" onClick={() => {
+                            setSelectedAudio(null);
+                            setHasListened(false); // Reset hasListened when going back
+                            setAudioEnded(false); // Also reset audioEnded
+                        }}>
                             ← Retour
                         </button>
                         <h3>{selectedAudio.title || 'Sans titre'}</h3>
                         <p className="audio-details-date">Date: {new Date(selectedAudio.created_at).toLocaleString()}</p>
                         <div className="audio-player-container">
-                            <audio ref={audioRef} src={selectedAudio.audio_url} controls onEnded={() => setIsPlaying(false)} />
-                            <button className="replay-button" onClick={handleReplay}>
-                                <FontAwesomeIcon icon={faRedo} /> Réécouter
+                            <audio
+                                ref={audioRef}
+                                src={selectedAudio.audio_url}
+                                controls
+                                onEnded={() => {
+                                    setIsPlaying(false);
+                                    setHasListened(true); // Set hasListened to true when audio ends
+                                    setAudioEnded(true); // Set audioEnded to true when audio ends
+                                }}
+                                onPlay={() => {
+                                    setHasListened(true); // Set hasListened to true when audio starts playing
+                                    setAudioEnded(false); // Reset audioEnded when audio starts playing
+                                }}
+                                onPause={() => setIsPlaying(false)}
+                            />
+                            <button className="replay-button" onClick={() => {
+                                handleReplay();
+                                setHasListened(true); // Consider it listened if replaying
+                                setAudioEnded(false); // Reset audioEnded when replaying
+                            }}>
+                                <FontAwesomeIcon icon={faRedo} />
+                                {audioEnded ? 'Réécouter' : 'Écouter'}
                             </button>
                         </div>
                         <div className="transcription-preview">
@@ -463,30 +494,29 @@ export default function Dashboard() {
                             <div
                                 key={recording.id}
                                 className="audio-item"
+                                onClick={() => {
+                                    setSelectedAudio(recording);
+                                    setHasListened(false); // Reset hasListened when selecting a new audio
+                                    setAudioEnded(false); // Reset audioEnded when selecting a new audio
+                                }} // Ajout du onClick
                             >
                                 <div className="audio-info">
-                                    <div className="audio-title">{recording.title || 'Sans titre'}</div>
+                                    <div className="audio-title">
+                                        <FontAwesomeIcon icon={faFileAudio} style={{ marginRight: '8px' }} />
+                                        {recording.title || 'Sans titre'}
+                                    </div>
                                     <div className="audio-date">
                                         {new Date(recording.created_at).toLocaleDateString()}
                                     </div>
                                 </div>
                                 <div className="audio-actions">
-                                    {recording.audio_url && (
-                                        <>
-                                            <button
-                                                className="play-button"
-                                                onClick={() => {
-                                                    setSelectedAudio(recording);
-                                                    handlePlayPause(recording.audio_url);
-                                                }}
-                                            >
-                                                <FontAwesomeIcon icon={isPlaying && currentlyPlayingAudioUrl === recording.audio_url ? faPause : faPlay} />
-                                            </button>
-                                        </>
-                                    )}
+
                                     <button
                                         className="delete-button"
-                                        onClick={() => handleDeleteAudio(recording.id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Empêche la propagation du clic au parent
+                                            handleDeleteAudio(recording.id);
+                                        }}
                                     >
                                         <FontAwesomeIcon icon={faTrash} />
                                     </button>
