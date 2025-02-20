@@ -16,7 +16,7 @@ import {
     faList,
     faTimes,
     faPlay,
-    faRedo, // Ajout de l'icône de lecture
+    faRedo,
     faPause
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -540,7 +540,7 @@ export default function Dashboard() {
                             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                         >
                             <FontAwesomeIcon icon={hasCopied ? faCheck : faCopy} />
-                            {hasCopied ? 'Copié !' : 'Copier la transcription'}
+                            {hasCopied ? 'Copié !' : 'Copier'}
                         </button>
                         <button
                             className="action-button"
