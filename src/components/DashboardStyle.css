@@ -1,0 +1,464 @@
+/* Variables pour une cohérence des couleurs */
+:root {
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --primary-color: #2c3e50;
+  --secondary-color: #3498db;
+  --accent-color: #e74c3c;
+  --background-color: #ecf0f1;
+  --text-color: #2d3748;
+  --white: #ffffff;
+  --success: #27ae60;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-container {
+  min-height: 100vh;
+  min-width: 100vw;
+  background-color: var(--background-color);
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.dashboard-header {
+  background-color: var(--primary-color);
+  padding: 1.5rem 35rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.brand-section h1 {
+  color: var(--white);
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.dashboard-logo {
+  height: 50px;
+  width: auto;
+  border-radius: 8px;
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.user-email {
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.logout-button {
+  padding: 0.8rem 1.5rem;
+  background-color: transparent;
+  color: var(--white);
+  border: 2px solid var(--white);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.logout-button:hover {
+  background-color: var(--white);
+  color: var(--primary-color);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-main {
+  padding: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  transition: margin-right 0.3s ease;
+  box-sizing: border-box;
+}
+
+.transcription-container {
+  background-color: var(--white);
+  padding: 2.5rem;
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  color: black;
+}
+
+.controls-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.record-button {
+  padding: 1.2rem 2.5rem;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 0.75rem;
+  background: var(--primary-gradient);
+  color: var(--white);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.record-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: 0.5s;
+}
+
+.record-button:hover::before {
+  left: 100%;
+}
+
+.record-button.recording {
+  background: var(--accent-color);
+  animation: gentlePulse 2s infinite;
+}
+
+.status-indicator {
+  font-size: 1rem;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.transcription-output {
+  margin: 2.5rem 0;
+  padding: 2rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  min-height: 250px;
+  background-color: #f7fafc;
+  color: black;
+}
+
+.transcription-output h2 {
+  color: var(--text-color);
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: black;
+}
+
+.transcription-text {
+  white-space: pre-wrap;
+  line-height: 1.8;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  color: black;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.action-button {
+  padding: 0.8rem 1.8rem;
+  background: rgb(56, 55, 55);
+  color: var(--white);
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 0.95rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: 0.5s;
+}
+
+.action-button:hover::before {
+  left: 100%;
+}
+
+.action-button:hover {
+  box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Sidebar styles */
+.sidebar {
+  position: fixed;
+  right: -400px;
+  top: 0;
+  height: 100vh;
+  width: 400px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  padding: 2rem;
+  visibility: hidden;
+  opacity: 0;
+  color: black; /* Ajout de la couleur de texte noire pour la sidebar */
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(249, 250, 251, 0.95));
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.open {
+  right: 0;
+  visibility: visible;
+  opacity: 1;
+}
+
+.sidebar-toggle {
+  position: fixed;
+  right: 25px;
+  top: 100px;
+  z-index: 1001;
+  background: var(--primary-gradient);
+  color: var(--white);
+  border: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+}
+
+.sidebar-toggle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+}
+
+.audio-list {
+  margin-top: 2rem;
+  color: black;
+}
+
+.audio-item {
+  padding: 1.2rem;
+  border-bottom: 1px solid #edf2f7;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 0.75rem;
+  color: black; /* Ajout de la couleur de texte noire pour les éléments audio */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.audio-item:hover {
+  background: #f7fafc;
+  transform: translateX(5px);
+}
+
+.audio-info {
+  flex-grow: 1;
+}
+
+.audio-title {
+  font-weight: 600;
+  color: black; /* Ajout de la couleur de texte noire pour les titres audio */
+  margin-bottom: 0.5rem;
+}
+
+.audio-date {
+  font-size: 0.9rem;
+  color: #718096;
+  color: black; /* Ajout de la couleur de texte noire pour les dates audio */
+}
+
+@keyframes gentlePulse {
+  0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
+  }
+  70% {
+      transform: scale(1.02);
+      box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+  }
+  100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 1600px) {
+  .dashboard-header {
+      padding: 1.5rem 20rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .dashboard-header {
+      padding: 1.5rem 10rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+      padding: 1.5rem 2rem;
+  }
+}
+.error-message {
+  background-color: #fff3f3;
+  border: 1px solid #ff4444;
+  color: #ff4444;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error-message button {
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.error-message button:hover {
+  background-color: #ff6666;
+}
+/* Ajout de styles pour les boutons de suppression et de lecture */
+.audio-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center; /* Alignement vertical pour une meilleure présentation */
+}
+
+.delete-button,
+.play-button {
+  background-color: #e74c3c; /* Rouge */
+  color: var(--white);
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-button {
+  background-color: #27ae60; /* Vert */
+}
+
+.delete-button:hover,
+.play-button:hover {
+  opacity: 0.8;
+}
+/* Style pour la date dans les détails de l'audio */
+.audio-details-date {
+  font-size: 0.9rem;
+  color: #718096;
+  margin-bottom: 1rem;
+}
+
+/* Style pour le conteneur de l'audio player et du bouton de réécoute */
+.audio-player-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+/* Style pour le bouton de réécoute */
+.replay-button {
+  background-color: #3498db; /* Bleu */
+  color: var(--white);
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 0.5rem;
+}
+
+.replay-button:hover {
+  opacity: 0.8;
+}
+
+/* Styles pour l'affichage des détails audio */
+.audio-details {
+    padding: 2rem;
+    border-radius: 1rem;
+    background-color: #f7fafc;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.audio-details h3 {
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.transcription-preview {
+    margin-top: 2rem;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 1rem;
+}
+
+.transcription-preview h4 {
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.transcription-preview p {
+    font-size: 1rem;
+    color: #4a5568;
+    line-height: 1.6;
+}
+/* Style du bouton de retour */
+.back-button {
+    background-color: #667eea;
+    color: var(--white);
+    border: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.back-button:hover {
+    opacity: 0.8;
+}

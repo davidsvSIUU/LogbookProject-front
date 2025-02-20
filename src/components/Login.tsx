@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginForm.css';
 import { supabase } from '../supabaseClient';
-
+import logo from '../assets/logo.jpg';
 interface LoginForm {
   email?: string;
   password?: string;
@@ -54,6 +54,18 @@ export default function Login() {
   return (
     <div className="login-container">
       <form onSubmit={handleSubmit} className="login-form">
+      <div className="logo-container">
+          <img 
+            src={logo} 
+            alt="Logo" 
+            style={{ 
+              width: '120px', 
+              height: 'auto', 
+              display: 'block', 
+              margin: '0 auto' 
+            }} 
+          />
+        </div>
         <h2 className="login-title">{isSignUp ? 'Inscription' : 'Connexion'}</h2>
 
         <div className="form-group">
@@ -81,7 +93,7 @@ export default function Login() {
         <button type="submit" className="submit-button">
           {isSignUp ? 'S\'inscrire' : 'Se connecter'}
         </button>
-        <p className="signup-link" onClick={() => setIsSignUp(!isSignUp)} style={{color: 'red'}}>
+        <p className="signup-link" onClick={() => setIsSignUp(!isSignUp)}>
           {isSignUp ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? S\'inscrire'}
         </p>
       </form>

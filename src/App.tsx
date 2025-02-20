@@ -1,11 +1,11 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
+import Dashboard from './components/Dashboard';
 import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { Session } from '@supabase/supabase-js'; // Import Session type
-
+import { Session } from '@supabase/supabase-js';
 function App() {
-  const [session, setSession] = useState<Session | null>(null); // Initialize session with null and correct type
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
     supabase.auth.onAuthStateChange((_event, session) => {
@@ -21,10 +21,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={session ? <Navigate to="/dashboard" /> : <Login />} />
-        <Route
-          path="/dashboard"
-          element={session ? <div>Dashboard</div> : <Navigate to="/" />}
-        />
+        <Route path="/dashboard" element={session ? <Dashboard /> : <Navigate to="/" />} />
       </Routes>
     </Router>
   );
