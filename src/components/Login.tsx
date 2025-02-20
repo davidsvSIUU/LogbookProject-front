@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginForm.css';
 import { supabase } from '../supabaseClient';
-import logo from '../assets/logo.jpg';
+import logo from '../assets/logo.jpg'; // Changed to .png
 interface LoginForm {
   email?: string;
   password?: string;
@@ -52,51 +52,46 @@ export default function Login() {
   };
 
   return (
-    <div className="login-container">
-      <form onSubmit={handleSubmit} className="login-form">
-      <div className="logo-container">
-          <img 
-            src={logo} 
-            alt="Logo" 
-            style={{ 
-              width: '120px', 
-              height: 'auto', 
-              display: 'block', 
-              margin: '0 auto' 
-            }} 
-          />
-        </div>
-        <h2 className="login-title">{isSignUp ? 'Inscription' : 'Connexion'}</h2>
+    <div className="main-container">
+      <div className="left-side">
+        <img src={logo} alt="Logbook Logo" className="logo" />
+        <h1>Logbook</h1>
+        <p>Des corrections à l'oral pour motiver les élèves et soulager les enseignants</p>
+      </div>
+      <div className="login-container">
+        <form onSubmit={handleSubmit} className="login-form">
+          <h2 className="login-title">Connexion</h2>
 
-        <div className="form-group">
-          <label className="form-label">Email</label>
-          <input
-            type="email"
-            className="form-input"
-            value={formData.email || ''}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            required
-          />
-        </div>
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input
+              type="email"
+              className="form-input"
+              value={formData.email || ''}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+            />
+          </div>
 
-        <div className="form-group">
-          <label className="form-label">Mot de passe</label>
-          <input
-            type="password"
-            className="form-input"
-            value={formData.password || ''}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            required
-          />
-        </div>
+          <div className="form-group">
+            <label className="form-label">Mot de passe</label>
+            <input
+              type="password"
+              className="form-input"
+              value={formData.password || ''}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              required
+            />
+          </div>
 
-        <button type="submit" className="submit-button">
-          {isSignUp ? 'S\'inscrire' : 'Se connecter'}
-        </button>
-        <p className="signup-link" onClick={() => setIsSignUp(!isSignUp)}>
-          {isSignUp ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? S\'inscrire'}
-        </p>
-      </form>
+          <button type="submit" className="submit-button">
+            Se connecter
+          </button>
+          <p className="signup-link" onClick={() => setIsSignUp(!isSignUp)}>
+            {isSignUp ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? S\'inscrire'}
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

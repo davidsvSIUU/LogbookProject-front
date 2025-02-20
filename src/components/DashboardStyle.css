@@ -1,13 +1,9 @@
 /* Variables pour une cohérence des couleurs */
 :root {
-  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --primary-color: #2c3e50;
-  --secondary-color: #3498db;
-  --accent-color: #e74c3c;
-  --background-color: #ecf0f1;
-  --text-color: #2d3748;
+  --primary-color: #025358;
+  --background-color: #f9f6ef;
+  --text-color: #025358;
   --white: #ffffff;
-  --success: #27ae60;
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
@@ -95,7 +91,7 @@
   border-radius: 1.5rem;
   box-shadow: var(--shadow);
   backdrop-filter: blur(10px);
-  color: black;
+  color: var(--text-color);
 }
 
 .controls-section {
@@ -111,7 +107,7 @@
   font-size: 1.1rem;
   border: none;
   border-radius: 0.75rem;
-  background: var(--primary-gradient);
+  background-color: #27ae60;
   color: var(--white);
   cursor: pointer;
   transition: all 0.3s ease;
@@ -137,7 +133,7 @@
 }
 
 .record-button.recording {
-  background: var(--accent-color);
+  background-color: #e74c3c;
   animation: gentlePulse 2s infinite;
 }
 
@@ -162,7 +158,6 @@
   margin-bottom: 1.5rem;
   font-weight: 700;
   font-size: 1.5rem;
-  color: black;
 }
 
 .transcription-text {
@@ -220,17 +215,14 @@
   top: 0;
   height: 100vh;
   width: 400px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  background-color: #f9f6ef;
   box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   z-index: 1000;
   padding: 2rem;
   visibility: hidden;
   opacity: 0;
-  color: black; /* Ajout de la couleur de texte noire pour la sidebar */
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(249, 250, 251, 0.95));
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-color);
 }
 
 .sidebar.open {
@@ -244,7 +236,7 @@
   right: 25px;
   top: 55px;
   z-index: 1001;
-  background: var(--primary-gradient);
+  background-color: var(--primary-color);
   color: var(--white);
   border: none;
   width: 50px;
