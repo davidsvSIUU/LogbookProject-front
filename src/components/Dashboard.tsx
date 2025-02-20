@@ -133,6 +133,7 @@ export default function Dashboard() {
   
       newWs.onopen = () => {
         console.log('WebSocket connection opened');
+        newWs.send(JSON.stringify({ user_id: session?.user.id }));
         setIsRecording(true);
         setTranscription('');
         recorder.start();

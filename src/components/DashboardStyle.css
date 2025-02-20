@@ -96,6 +96,7 @@
   border-radius: 1.5rem;
   box-shadow: var(--shadow);
   backdrop-filter: blur(10px);
+  color : black;
 }
 
 .controls-section {
@@ -154,6 +155,7 @@
   border-radius: 0.75rem;
   min-height: 250px;
   background-color: #f7fafc;
+  color : black;
 }
 
 .transcription-output h2 {
@@ -161,6 +163,7 @@
   margin-bottom: 1.5rem;
   font-weight: 700;
   font-size: 1.5rem;
+  color : black;
 }
 
 .transcription-text {
@@ -168,6 +171,7 @@
   line-height: 1.8;
   color: var(--text-color);
   font-size: 1.1rem;
+  color : black;
 }
 
 .action-buttons {
@@ -259,6 +263,7 @@
 
 .audio-list {
   margin-top: 2rem;
+  color : black;
 }
 
 .audio-item {
