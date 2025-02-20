@@ -373,18 +373,27 @@ export default function Dashboard() {
             setTimeout(() => setErrorMessage(null), 5000); // Supprimer le message après 5 secondes
         }
     };
+    // Dans votre fonction handlePlayPause, ajoutez cette animation
     const handlePlayPause = (audioUrl: string) => {
-        if (audioRef.current) {
-            if (isPlaying && currentlyPlayingAudioUrl === audioUrl) {
-                audioRef.current.pause();
-                setIsPlaying(false);
-            } else {
-                audioRef.current.src = audioUrl;
-                audioRef.current.play();
-                setIsPlaying(true);
-                setCurrentlyPlayingAudioUrl(audioUrl);
-            }
-        }
+      if (audioRef.current) {
+          const button = document.querySelector('.play-button') as HTMLElement;
+          if (button) {
+              button.style.transform = 'scale(0.9)';
+              setTimeout(() => {
+                  button.style.transform = 'scale(1)';
+              }, 100);
+          }
+
+          if (isPlaying && currentlyPlayingAudioUrl === audioUrl) {
+              audioRef.current.pause();
+              setIsPlaying(false);
+          } else {
+              audioRef.current.src = audioUrl;
+              audioRef.current.play();
+              setIsPlaying(true);
+              setCurrentlyPlayingAudioUrl(audioUrl);
+          }
+      }
     };
     const handleReplay = () => {
         if (audioRef.current) {
