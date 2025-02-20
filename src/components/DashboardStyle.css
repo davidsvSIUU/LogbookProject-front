@@ -96,7 +96,7 @@
   border-radius: 1.5rem;
   box-shadow: var(--shadow);
   backdrop-filter: blur(10px);
-  color : black;
+  color: black;
 }
 
 .controls-section {
@@ -155,7 +155,7 @@
   border-radius: 0.75rem;
   min-height: 250px;
   background-color: #f7fafc;
-  color : black;
+  color: black;
 }
 
 .transcription-output h2 {
@@ -163,7 +163,7 @@
   margin-bottom: 1.5rem;
   font-weight: 700;
   font-size: 1.5rem;
-  color : black;
+  color: black;
 }
 
 .transcription-text {
@@ -171,7 +171,7 @@
   line-height: 1.8;
   color: var(--text-color);
   font-size: 1.1rem;
-  color : black;
+  color: black;
 }
 
 .action-buttons {
@@ -229,6 +229,7 @@
   padding: 2rem;
   visibility: hidden;
   opacity: 0;
+  color: black; /* Ajout de la couleur de texte noire pour la sidebar */
 }
 
 .sidebar.open {
@@ -263,7 +264,7 @@
 
 .audio-list {
   margin-top: 2rem;
-  color : black;
+  color: black;
 }
 
 .audio-item {
@@ -272,6 +273,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 0.75rem;
+  color: black; /* Ajout de la couleur de texte noire pour les éléments audio */
 }
 
 .audio-item:hover {
@@ -281,13 +283,14 @@
 
 .audio-title {
   font-weight: 600;
-  color: var(--text-color);
+  color: black; /* Ajout de la couleur de texte noire pour les titres audio */
   margin-bottom: 0.5rem;
 }
 
 .audio-date {
   font-size: 0.9rem;
   color: #718096;
+  color: black; /* Ajout de la couleur de texte noire pour les dates audio */
 }
 
 @keyframes gentlePulse {
