@@ -1,5 +1,6 @@
 // components/Dashboard.tsx
 import { useEffect, useState, useRef } from 'react';
+import axios from 'axios';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Session } from '@supabase/supabase-js';
@@ -43,7 +44,17 @@ export default function Dashboard() {
     const [currentlyPlayingAudioUrl, setCurrentlyPlayingAudioUrl] = useState<string | null>(null);
     const [hasListened, setHasListened] = useState(false);
     const [audioEnded, setAudioEnded] = useState(false); // New state to track audio end
+    const [selectedAudioTranscriptionContent, setSelectedAudioTranscriptionContent] = useState<string | null>(null);
 
+    const fetchTranscriptionContent = async (url: string) => {
+        try {
+            const response = await axios.get(url);
+            setSelectedAudioTranscriptionContent(response.data);
+        } catch (error) {
+            console.error('Error fetching transcription content:', error);
+            setSelectedAudioTranscriptionContent('Failed to load transcription.');
+        }
+    };
 
     useEffect(() => {
         const fetchSession = async () => {
@@ -110,6 +121,14 @@ export default function Dashboard() {
 
         if (isSidebarOpen) fetchAudios();
     }, [isSidebarOpen, session]);
+
+    useEffect(() => {
+        if (selectedAudio && selectedAudio.transcription_text) {
+            fetchTranscriptionContent(selectedAudio.transcription_text);
+        } else {
+            setSelectedAudioTranscriptionContent(null);
+        }
+    }, [selectedAudio]);
 
     const startRecording = async () => {
         try {
@@ -466,7 +485,7 @@ export default function Dashboard() {
                         </div>
                         <div className="transcription-preview">
                             <h4>Transcription :</h4>
-                            <p>{selectedAudio.transcription_text || 'Aucune transcription disponible'}</p>
+                            <p>{selectedAudioTranscriptionContent || selectedAudio.transcription_text || 'Aucune transcription disponible'}</p>
                         </div>
                     </div>
                 ) : (
