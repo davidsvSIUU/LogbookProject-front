@@ -131,7 +131,9 @@ export default function Dashboard() {
     }, [selectedAudio]);
 
     const startRecording = async () => {
+        console.log("Démarrage de l'enregistrement..."); // Ajout d'un log au début
         try {
+            console.log("Tentative de création d'un nouvel enregistrement dans Supabase..."); // Log avant l'appel à Supabase
             const { data: recordingData, error: recordingError } = await supabase
                 .from('recordings')
                 .insert([
@@ -146,21 +148,26 @@ export default function Dashboard() {
                 .single();
 
             if (recordingError) {
-                console.error('Erreur lors de la création de l\'enregistrement:', recordingError);
+                console.error('Erreur lors de la création de l\'enregistrement dans Supabase:', recordingError);
                 setErrorMessage(`Erreur de création d'enregistrement: ${recordingError.message}`);
                 setTimeout(() => setErrorMessage(null), 5000);
                 return;
             }
 
             setCurrentRecordingId(recordingData.id);
+            console.log("Nouvel enregistrement créé dans Supabase avec l'ID:", recordingData.id); // Log après la création de l'enregistrement
 
+            console.log("Tentative d'acquisition du flux audio de l'utilisateur..."); // Log avant getUserMedia
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            console.log("Flux audio acquis avec succès."); // Log si getUserMedia réussit
             setAudioStream(stream);
             const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
             setMediaRecorder(recorder);
             setAudioChunks([]);
             audioChunksRef.current = [];
+            console.log("MediaRecorder initialisé."); // Log après l'initialisation de MediaRecorder
 
+            console.log("Tentative de connexion WebSocket..."); // Log avant la connexion WebSocket
             const newWs = new WebSocket('ws://localhost:8000/ws/transcire');
             setWs(newWs);
 
@@ -169,7 +176,88 @@ export default function Dashboard() {
                 newWs.send(JSON.stringify({ user_id: session?.user.id }));
                 setIsRecording(true);
                 setTranscription('');
+                console.log("Démarrage de l'enregistrement avec MediaRecorder..."); // Log avant recorder.start()
                 recorder.start();
+                console.log("MediaRecorder démarré avec succès."); // Log si recorder.start() réussit
+            };
+
+            newWs.onerror = (event) => { // Change 'error' to 'event'
+                console.error('WebSocket error:', event);
+                setErrorMessage(`Erreur WebSocket: ${event}`); // Display the event
+                setTimeout(() => setErrorMessage(null), 5000);
+                setTranscription('Erreur de transcription WebSocket.');
+                setIsRecording(false);
+                stopRecording();
+            };
+
+            recorder.onerror = (event) => {
+                console.error('MediaRecorder error:', event);
+                setErrorMessage(`Erreur MediaRecorder: ${event}`);
+                setTimeout(() => setErrorMessage(null), 5000);
+                setTranscription('Erreur lors de l\'enregistrement audio.');
+                setIsRecording(false);
+                stopRecording();
+            }
+
+            newWs.onclose = () => {
+                console.log('WebSocket connection closed');
+                setIsRecording(false);
+            };
+
+            recorder.ondataavailable = (event) => {
+                console.log("Data available from MediaRecorder:", event.data);
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data);
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(event.data);
+                    }
+                }
+            };
+
+            recorder.onstop = async () => {
+                console.log("MediaRecorder stopped.");
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.close();
+                }
+
+                if (currentRecordingId) {
+                    try {
+                        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                        setAudioBlob(audioBlob); // Stockage du Blob
+                        const fileName = `recording_${currentRecordingId}_${Date.now()}.webm`;
+
+                        const { data: uploadData, error: uploadError } = await supabase.storage // No longer an error, variable used.
+                            .from('logbook-audio-records')
+                            .upload(`${session?.user.id}/${fileName}`, audioBlob, {
+                                cacheControl: '3600',
+                                upsert: false
+                            });
+
+                        if (uploadError) throw uploadError;
+
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('logbook-audio-records')
+                            .getPublicUrl(`${session?.user.id}/${fileName}`);
+
+                        const { error: updateError } = await supabase
+                            .from('recordings')
+                            .update({ audio_url: publicUrl })
+                            .eq('id', currentRecordingId);
+
+                        if (updateError) throw updateError;
+
+                    } catch (error: any) {
+                        console.error('Erreur lors du traitement audio :', error);
+                        setErrorMessage(`Erreur de traitement audio: ${error.message}`);
+                        setTimeout(() => setErrorMessage(null), 5000);
+                    }
+                }
+
+                if (audioStream) {
+                    audioStream.getTracks().forEach(track => track.stop());
+                    setAudioStream(null);
+                }
+                audioChunksRef.current = [];
             };
 
             newWs.onmessage = async (event) => {
@@ -268,72 +356,77 @@ export default function Dashboard() {
         }
     };
 
-    const stopRecording = async () => {
-        if (mediaRecorder && mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-        }
+const stopRecording = async () => {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+    }
 
-        if (audioStream) {
-            audioStream.getTracks().forEach(track => track.stop());
-            setAudioStream(null);
-        }
+    if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+        setAudioStream(null);
+    }
 
-        setIsRecording(false);
+    setIsRecording(false);
 
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.close();
-        }
+    // Send a "stop" message to the backend before closing the WebSocket
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "stop" })); // Add this line
+    }
 
-        // Attendre un peu pour s'assurer que l'audioBlob est créé
-        await new Promise(resolve => setTimeout(resolve, 100));
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+    }
 
-        if (currentRecordingId && audioBlob) {
-            try {
-                // Créer un nom de fichier unique
-                const fileName = `${session?.user.id}/recording-${currentRecordingId}-${Date.now()}.webm`;
+    // Attendre un peu pour s'assurer que l'audioBlob est créé
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-                // Upload the audio file to Supabase Storage
-                const { data: uploadData, error: uploadError } = await supabase.storage  // No longer an error, variable used.
-                    .from('logbook-audio-records')
-                    .upload(fileName, audioBlob, {
-                      cacheControl: '3600',
-                      upsert: false
-                    });
+    if (currentRecordingId && audioBlob) {
+        try {
+            // Créer un nom de fichier unique
+            const fileName = `${session?.user.id}/recording-${currentRecordingId}-${Date.now()}.webm`;
 
-                if (uploadError) {
-                    throw new Error(`Erreur lors de l'upload: ${uploadError.message}`);
-                }
+            // Upload the audio file to Supabase Storage
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('logbook-audio-records')
+                .upload(fileName, audioBlob, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
 
-                // Créer l'URL publique pour l'audio
-                const { data: { publicUrl } } = supabase.storage
-                    .from('logbook-audio-records')
-                    .getPublicUrl(fileName);
-
-                // Mettre à jour l'enregistrement avec l'URL de l'audio et la transcription finale
-                const { error: updateError } = await supabase
-                    .from('recordings')
-                    .update({
-                        transcription_text: transcription,
-                        audio_url: publicUrl
-                    })
-                    .eq('id', currentRecordingId);
-
-                if (updateError) {
-                    throw new Error(`Erreur lors de la mise à jour: ${updateError.message}`);
-                }
-
-            } catch (error: any) {
-                console.error('Erreur lors de l\'enregistrement de l\'audio:', error);
-                setErrorMessage(`Erreur lors de l'enregistrement de l'audio: ${error.message}`);
-                setTimeout(() => setErrorMessage(null), 5000);
+            if (uploadError) {
+                throw new Error(`Erreur lors de l'upload: ${uploadError.message}`);
             }
-        }
 
-        // Réinitialiser les states
-        setCurrentRecordingId(null);
-        setAudioBlob(null);
-        setAudioChunks([]);
-    };
+            // Créer l'URL publique pour l'audio
+            const { data: { publicUrl } } = supabase.storage
+                .from('logbook-audio-records')
+                .getPublicUrl(fileName);
+
+            // Mettre à jour l'enregistrement avec l'URL de l'audio et la transcription finale
+            const { error: updateError } = await supabase
+                .from('recordings')
+                .update({
+                    transcription_text: transcription,
+                    audio_url: publicUrl
+                })
+                .eq('id', currentRecordingId);
+
+            if (updateError) {
+                throw new Error(`Erreur lors de la mise à jour: ${updateError.message}`);
+            }
+
+        } catch (error: any) {
+            console.error('Erreur lors de l\'enregistrement de l\'audio:', error);
+            setErrorMessage(`Erreur lors de l'enregistrement de l'audio: ${error.message}`);
+            setTimeout(() => setErrorMessage(null), 5000);
+        }
+    }
+
+    // Réinitialiser les states
+    setCurrentRecordingId(null);
+    setAudioBlob(null);
+    setAudioChunks([]);
+};
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
