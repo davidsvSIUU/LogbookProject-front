@@ -60,7 +60,7 @@ export default function Login() {
       </div>
       <div className="login-container">
         <form onSubmit={handleSubmit} className="login-form">
-          <h2 className="login-title">Connexion</h2>
+<h2 className="login-title">{isSignUp ? 'Inscription' : 'Connexion'}</h2>
 
           <div className="form-group">
             <label className="form-label">Email</label>
